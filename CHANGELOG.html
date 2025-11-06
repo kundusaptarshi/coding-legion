@@ -1,0 +1,83 @@
+<h2>Version 1.6.0 - Major Update</h2>
+
+<h3>🆕 New Rules (3 Added)</h3>
+<ul>
+    <li><b>Rule 8: DTO Initialization Check (WARNING)</b> - Warns when accessing DTO properties without checking isInitialized() first</li>
+    <li><b>Rule 9: Null Values in Context (ERROR)</b> - Prevents adding null literals to context objects and shared containers</li>
+    <li><b>Rule 10: Null Values in Map (WARNING)</b> - Warns about null literals in Map.put() - review for legitimacy</li>
+</ul>
+
+<h3>✨ Rule Improvements</h3>
+<ul>
+    <li><b>Rule 5 (Null Defaults) - Extended!</b> Now detects if-else blocks in addition to ternary operators:
+        <ul>
+            <li>if (obj == null) { x = default; } else { x = obj; }</li>
+            <li>if (obj == null) { return default; } else { return obj; }</li>
+        </ul>
+    </li>
+    <li><b>Rule 6 (Boolean Unboxing) - Now ERROR!</b> Changed from WARNING to ERROR + detects more cases:
+        <ul>
+            <li>Return statements with unboxing</li>
+            <li>Method arguments with unboxing</li>
+            <li>If conditions with unboxing</li>
+        </ul>
+    </li>
+    <li><b>Rule 7 (Log Null Dereference) - Smarter!</b>
+        <ul>
+            <li>Now detects field access (client.name)</li>
+            <li>Comprehensive null-safe method whitelist (Objects, Arrays, Optional, StringUtils, CollectionUtils, etc.)</li>
+            <li>Doesn't flag simple object references</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>🔧 Detector Enhancements</h3>
+<ul>
+    <li><b>Combined Collection Detectors</b> - Rules 3 & 4 merged into one comprehensive detector:
+        <ul>
+            <li>Detects unsafe isEmpty()/size() calls without null checks</li>
+            <li>Recognizes safe patterns (new ArrayList(), Collections.emptyList())</li>
+            <li>Checks for existing null checks in parent conditions</li>
+        </ul>
+    </li>
+    <li><b>Rule 1 (String.equals) - Fewer False Positives!</b> Now ignores string literals: "CONSTANT".equals(variable)</li>
+    <li><b>Rule 2 (String Empty) - More Patterns!</b> Now detects: str == null || str.length() == 0</li>
+    <li><b>Rules 9 & 10 - Smart Severity Levels!</b> 
+    <ul>
+        <li>Context/Attributes: ERROR (always a bug)</li>
+        <li>Maps: WARNING (might be legitimate)</li>
+        <li>Regular POJOs: Not flagged (product.setPrice(null) is fine)</li>
+    </ul>
+</li>
+</ul>
+
+<h3>🎨 UI Improvements</h3>
+<ul>
+    <li><b>Warning Tab Footer</b> - Clickable link to Best Practices documentation for manual code review principles</li>
+    <li><b>Bug Fix:</b> Stale violations now properly cleared when no Java changes detected or files deleted</li>
+    <li>Improved violation descriptions with detailed examples and context</li>
+</ul>
+
+<h3>📚 Documentation Updates</h3>
+<ul>
+    <li><b>New Section: Manual Code Review Principles</b>
+        <ul>
+            <li>Error handling & null check guidelines</li>
+            <li>Boolean testing requirements (true/false/null coverage)</li>
+            <li>Clear separation of automated vs manual rules</li>
+        </ul>
+    </li>
+    <li>Comparison table: Automated Detection vs Manual Review Required</li>
+    <li>Updated all rule descriptions with better examples</li>
+</ul>
+
+<h3>📊 Summary</h3>
+<ul>
+    <li><b>Total Rules:</b> 10 automated detectors (was 7)</li>
+    <li><b>Errors:</b> 7 rules (was 5)</li>
+    <li><b>Warnings:</b> 4 rules (was 2)</li>
+    <li><b>False Positives:</b> Significantly reduced across all rules</li>
+    <li><b>Detection Coverage:</b> Expanded to cover more violation patterns</li>
+    <li><b>Smarter Severity:</b> Context/Map null values now have appropriate severity levels based on risk</li>
+</ul>
+

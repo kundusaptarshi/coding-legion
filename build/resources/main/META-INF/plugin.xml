@@ -1,0 +1,169 @@
+<idea-plugin>
+  <version>1.6.0</version>
+  <change-notes><![CDATA[<h2>Version 1.6.0 - Major Update</h2>
+
+<h3>🆕 New Rules (3 Added)</h3>
+<ul>
+    <li><b>Rule 8: DTO Initialization Check (WARNING)</b> - Warns when accessing DTO properties without checking isInitialized() first</li>
+    <li><b>Rule 9: Null Values in Context (ERROR)</b> - Prevents adding null literals to context objects and shared containers</li>
+    <li><b>Rule 10: Null Values in Map (WARNING)</b> - Warns about null literals in Map.put() - review for legitimacy</li>
+</ul>
+
+<h3>✨ Rule Improvements</h3>
+<ul>
+    <li><b>Rule 5 (Null Defaults) - Extended!</b> Now detects if-else blocks in addition to ternary operators:
+        <ul>
+            <li>if (obj == null) { x = default; } else { x = obj; }</li>
+            <li>if (obj == null) { return default; } else { return obj; }</li>
+        </ul>
+    </li>
+    <li><b>Rule 6 (Boolean Unboxing) - Now ERROR!</b> Changed from WARNING to ERROR + detects more cases:
+        <ul>
+            <li>Return statements with unboxing</li>
+            <li>Method arguments with unboxing</li>
+            <li>If conditions with unboxing</li>
+        </ul>
+    </li>
+    <li><b>Rule 7 (Log Null Dereference) - Smarter!</b>
+        <ul>
+            <li>Now detects field access (client.name)</li>
+            <li>Comprehensive null-safe method whitelist (Objects, Arrays, Optional, StringUtils, CollectionUtils, etc.)</li>
+            <li>Doesn't flag simple object references</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>🔧 Detector Enhancements</h3>
+<ul>
+    <li><b>Combined Collection Detectors</b> - Rules 3 & 4 merged into one comprehensive detector:
+        <ul>
+            <li>Detects unsafe isEmpty()/size() calls without null checks</li>
+            <li>Recognizes safe patterns (new ArrayList(), Collections.emptyList())</li>
+            <li>Checks for existing null checks in parent conditions</li>
+        </ul>
+    </li>
+    <li><b>Rule 1 (String.equals) - Fewer False Positives!</b> Now ignores string literals: "CONSTANT".equals(variable)</li>
+    <li><b>Rule 2 (String Empty) - More Patterns!</b> Now detects: str == null || str.length() == 0</li>
+    <li><b>Rules 9 & 10 - Smart Severity Levels!</b> 
+    <ul>
+        <li>Context/Attributes: ERROR (always a bug)</li>
+        <li>Maps: WARNING (might be legitimate)</li>
+        <li>Regular POJOs: Not flagged (product.setPrice(null) is fine)</li>
+    </ul>
+</li>
+</ul>
+
+<h3>🎨 UI Improvements</h3>
+<ul>
+    <li><b>Warning Tab Footer</b> - Clickable link to Best Practices documentation for manual code review principles</li>
+    <li><b>Bug Fix:</b> Stale violations now properly cleared when no Java changes detected or files deleted</li>
+    <li>Improved violation descriptions with detailed examples and context</li>
+</ul>
+
+<h3>📚 Documentation Updates</h3>
+<ul>
+    <li><b>New Section: Manual Code Review Principles</b>
+        <ul>
+            <li>Error handling & null check guidelines</li>
+            <li>Boolean testing requirements (true/false/null coverage)</li>
+            <li>Clear separation of automated vs manual rules</li>
+        </ul>
+    </li>
+    <li>Comparison table: Automated Detection vs Manual Review Required</li>
+    <li>Updated all rule descriptions with better examples</li>
+</ul>
+
+<h3>📊 Summary</h3>
+<ul>
+    <li><b>Total Rules:</b> 10 automated detectors (was 7)</li>
+    <li><b>Errors:</b> 7 rules (was 5)</li>
+    <li><b>Warnings:</b> 4 rules (was 2)</li>
+    <li><b>False Positives:</b> Significantly reduced across all rules</li>
+    <li><b>Detection Coverage:</b> Expanded to cover more violation patterns</li>
+    <li><b>Smarter Severity:</b> Context/Map null values now have appropriate severity levels based on risk</li>
+</ul>]]></change-notes>
+  <id>com.codinglegion</id>
+  <name>Coding Legion</name>
+  <!-- Version is automatically patched from build.gradle.kts -->
+  <vendor email="saptarshi.kundu@example.com">Saptarshi Kundu</vendor>
+  <!-- Plugin icon for marketplace -->
+  <idea-version since-build="201" until-build="999.*" />
+  <description><![CDATA[<h1>Coding Legion - Coding Standards Enforcement</h1>
+        
+        <p><b>Enforce coding standards in your Java projects automatically!</b></p>
+        
+        <p>Coding Legion is a powerful IntelliJ IDEA plugin that helps teams maintain consistent coding standards 
+        by detecting and reporting violations in real-time.</p>
+        
+        <p><b>Current Focus:</b> Null check coding standards using Apache Commons and Spring utilities.</p>
+        <p><b>Extensible:</b> Designed to support all coding standard rules with an easy-to-extend architecture.</p>
+        
+        <h2>Key Features</h2>
+        <ul>
+            <li><b>Smart Branch Detection:</b> Analyzes only feature branches (skips main/master)</li>
+            <li><b>Changed Files Only:</b> Scans only modified/added files for maximum efficiency</li>
+            <li><b>Errors:</b> Detects definite null check violations that must be fixed</li>
+            <li><b>Warnings:</b> Flags potential null-safety concerns that should be reviewed</li>
+            <li><b>Clickable Navigation:</b> Jump directly to violation locations</li>
+            <li><b>Resolve & Track:</b> Mark violations as resolved to ignore in future runs</li>
+            <li><b>Fast Background Analysis:</b> Non-blocking, efficient scanning</li>
+            <li><b>Beautiful UI:</b> Dark-themed tool window with logo branding</li>
+        </ul>
+        
+        <h2>Current Rules: 10 Automated Detectors</h2>
+        <ul>
+            <li><b>String.equals()</b> - Must use StringUtils.equals() for null safety</li>
+            <li><b>String empty checks</b> - Must use StringUtils.isEmpty()</li>
+            <li><b>Collection checks</b> - Must use CollectionUtils.isEmpty() (combined detector)</li>
+            <li><b>Null defaults</b> - Should use ObjectUtils.defaultIfNull() (ternary & if-else)</li>
+            <li><b>Boolean unboxing</b> - Must use BooleanUtils.isTrue() (ERROR)</li>
+            <li><b>Null in context</b> - Never add null to contexts/attributes (ERROR)</li>
+            <li><b>Log null dereferences</b> - Should add null checks for method calls</li>
+            <li><b>DTO initialization</b> - Should check isInitialized() before access</li>
+            <li><b>Null in maps</b> - Review null literals in Map.put() (WARNING)</li>
+        </ul>
+        
+        <p><b>7 ERRORS + 4 WARNINGS</b> | Smart severity levels based on risk and context</p>
+        
+        <p><i>More coding standard rules can be added easily through the plugin's extensible detector framework.</i></p>
+        
+        <h2>Usage</h2>
+        <ol>
+            <li>Checkout a feature branch (not main/master)</li>
+            <li>Make code changes to Java files</li>
+            <li>Run: Tools → Run Legion Analysis or right-click project</li>
+            <li>View violations in the "Coding Legion" tool window</li>
+            <li>Click blue links to navigate to code</li>
+            <li>Apply suggested fixes</li>
+        </ol>
+        
+        <h2>Requirements</h2>
+        <ul>
+            <li>IntelliJ IDEA 2020.1 or later</li>
+            <li>Java project with Git version control</li>
+            <li>No external dependencies required!</li>
+        </ul>
+        
+        <br/>
+        <hr/>
+        <p style="font-size: 8px; color: #888;">
+            <b>© 2025 Saptarshi Kundu. All Rights Reserved.</b><br/>
+            Developed by Saptarshi Kundu for enforcing coding standards in Java projects.
+        </p>]]></description>
+  <!-- Change notes are automatically patched from build.gradle.kts -->
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.java</depends>
+  <depends>Git4Idea</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Tool Window -->
+    <toolWindow id="Coding Legion" anchor="bottom" icon="/icons/logo_16.png" factoryClass="com.codinglegion.ui.CodingLegionToolWindowFactory" />
+    <!-- Startup Activity: Open README on project open -->
+    <postStartupActivity implementation="com.codinglegion.startup.OpenReadmeOnStartup" />
+  </extensions>
+  <actions>
+    <action id="com.codinglegion.RunLegionAnalysis" class="com.codinglegion.actions.RunAnalysisAction" text="Run Legion Analysis" description="Analyze changed files for null check violations (Feature branches only)" icon="/icons/logo_16.png">
+      <add-to-group group-id="ToolsMenu" anchor="last" />
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last" />
+    </action>
+  </actions>
+</idea-plugin>

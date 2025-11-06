@@ -16,8 +16,7 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 - [Requirements](#-requirements)
 - [Installation](#-installation)
 - [Usage Guide](#-usage-guide)
-- [Violations Reference](#-violations-reference) - 10 Automated Rules
-- [Best Practices](#-best-practices) - Manual Review Guidelines
+- [Violations Reference](#-violations-reference)
 - [Configuration](#-configuration)
 - [Development](#-development)
 - [Team Distribution](#-team-distribution)
@@ -37,11 +36,10 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 - **Incremental Scanning**: Efficient detection focused on your changes
 
 ### Comprehensive Detection
-- **Errors**: Detects definite coding standard violations that must be fixed (7 rules)
-- **Warnings**: Flags potential coding standard concerns that should be reviewed (4 rules)
-- **10 Automated Rules**: String handling, collections, objects, booleans, logging, DTOs, and context/map management
+- **Errors**: Detects definite coding standard violations that must be fixed
+- **Warnings**: Flags potential coding standard concerns that should be reviewed
+- **7 Null Check Rules**: Currently implements string handling, collections, objects, booleans, and logging
 - **Extensible Architecture**: Easily add new rules for other coding standards
-- **Smart Severity Levels**: Context-aware ERROR vs WARNING classification
 
 ### Developer-Friendly UI
 - **Clickable Violations**: Click blue links to jump directly to exact code location (line:column)
@@ -94,14 +92,14 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
    ```bash
    # Build from source:
    ./gradlew buildPlugin
-   # Output: build/distributions/coding-legion-<version>.zip
+   # Output: build/distributions/coding-legion-1.0.0.zip
    ```
 
 2. **Install in IntelliJ**:
     - Open IntelliJ IDEA
     - Go to `File` → `Settings` → `Plugins`
     - Click gear icon (⚙️) → `Install Plugin from Disk...`
-    - Select `coding-legion-<version>.zip`
+    - Select `coding-legion-1.0.0.zip`
     - Click `OK` and **restart IntelliJ**
 
 3. **Verify Installation**:
@@ -201,15 +199,11 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 
 ## 🔍 Violations Reference
 
-**Complete reference for all violations that are AUTOMATICALLY DETECTED by the plugin.**
-
-These rules are automatically enforced during analysis. Violations will appear in the Errors or Warnings tabs.
+Complete reference for all null check violations currently implemented.
 
 ### Current Coverage: Null Check Standards
 
 The plugin currently enforces null-safe coding practices using Apache Commons and Spring utilities. Additional coding standards can be added easily using the extensible detector framework.
-
-**Note:** Some important coding principles cannot be automatically detected and require manual review. See [Best Practices & Coding Principles](#-best-practices) section below for manual guidelines.
 
 ### ⚠ ERRORS (Must Fix)
 
@@ -265,25 +259,46 @@ showError();
 
 ---
 
-#### 3-4. Collection Checks (Combined Detector)
+#### 3. Manual Collection Null Check
 
-**What it detects**: 
-- `collection == null || collection.isEmpty()` (manual pattern)
-- `collection.size() == 0` or `> 0` (size comparisons)
-- Unsafe `collection.isEmpty()` or `collection.size()` without null check
+**What it detects**: `collection == null || collection.isEmpty()`
 
-**Why**: Verbose manual checks, NPE risk if not null-checked, less semantic
+**Why**: Verbose when utility method exists
 
 **Bad**:
 ```java
-// Manual null check (verbose)
 if (list == null || list.isEmpty()) {
-    return;
-}
+        return;
+        }
+```
 
-// Size comparison (not null-safe!)
-if (items.size() == 0) {  // NPE if items is null!
-    return "No items";
+**Good**:
+```java
+import org.apache.commons.collections4.CollectionUtils;
+
+if (CollectionUtils.isEmpty(list)) {
+        return;
+        }
+```
+
+**Fix**: `CollectionUtils.isEmpty(collection)`
+
+---
+
+#### 4. Collection Size Comparison
+
+**What it detects**: `collection.size() == 0` or `collection.size() > 0`
+
+**Why**: Less semantic, doesn't handle null
+
+**Bad**:
+```java
+if (items.size() == 0) {
+        return "No items";
+        }
+
+        if (items.size() > 0) {
+processItems();
 }
 ```
 
@@ -291,237 +306,84 @@ if (items.size() == 0) {  // NPE if items is null!
 ```java
 import org.apache.commons.collections4.CollectionUtils;
 
-// One method handles all cases (null-safe!)
-if (CollectionUtils.isEmpty(list)) {
-    return;
-}
+if (CollectionUtils.isEmpty(items)) {
+        return "No items";
+        }
 
-if (CollectionUtils.isNotEmpty(items)) {
-    processItems();
-}
-```
-
-**Fix**: `CollectionUtils.isEmpty(collection)` or `CollectionUtils.isNotEmpty(collection)`
-
-**Note**: The detector is smart - it recognizes safe patterns like `new ArrayList<>().isEmpty()` and `Collections.emptyList().size()` and won't flag them.
-
----
-
-#### 6. Boolean Auto-Unboxing Risk
-
-**What it detects**: Boolean wrapper being auto-unboxed to primitive boolean
-
-**Why**: Auto-unboxing throws NPE if wrapper is null
-
-**Bad**:
-```java
-Boolean isActive = getStatus();
-boolean active = isActive;  // NPE if isActive is null!
-
-public boolean isValid() {
-    Boolean result = checkValidity();
-    return result;  // NPE if result is null!
-}
-
-void setFlag(boolean flag) { }
-Boolean flagObj = getFlag();
-setFlag(flagObj);  // NPE if flagObj is null!
-```
-
-**Good**:
-```java
-import org.apache.commons.lang3.BooleanUtils;
-
-Boolean isActive = getStatus();
-boolean active = BooleanUtils.isTrue(isActive);  // Safe, defaults to false
-
-public boolean isValid() {
-    Boolean result = checkValidity();
-    return BooleanUtils.isTrue(result);  // Safe
-}
-
-void setFlag(boolean flag) { }
-Boolean flagObj = getFlag();
-if (flagObj != null) {
-    setFlag(flagObj);
+        if (!CollectionUtils.isEmpty(items)) {
+processItems();
 }
 ```
 
-**Fix**: `BooleanUtils.isTrue(boolObj)` or `Boolean.TRUE.equals(boolObj)`
-
-**Note**: Changed to ERROR in v1.6.0 - the detector confirms Boolean→boolean conversion, so there's real NPE risk.
-
----
-
-#### 7. Null Value in Context/Attributes
-
-**What it detects**: Null literals passed to Context/Attributes/Properties/Settings setters
-
-**Why**: Almost always a bug in shared contexts
-
-**Bad**:
-```java
-context.setTransactionAttribute(namespace, key, null);
-settings.setAttribute("name", null);
-properties.setProperty("config", null);
-```
-
-**Good**:
-```java
-// Only add non-null values
-if (value != null) {
-    context.setTransactionAttribute(namespace, key, value);
-}
-
-// To remove, use remove() method
-context.removeTransactionAttribute(namespace, key);
-```
-
-**Fix**: `if (value != null) { context.set...(key, value); }` or use `remove()`
-
-**Note**: Regular POJO setters like `product.setPrice(null)` are NOT flagged - those are legitimate for optional fields.
+**Fix**: `CollectionUtils.isEmpty(collection)` or `!CollectionUtils.isEmpty(collection)`
 
 ---
 
 ### ⚡ WARNINGS (Should Review)
 
-#### 5. Null Default Pattern (Ternary or If-Else)
+#### 5. Ternary Null Default Pattern
 
-**What it detects**: 
-- Ternary: `obj != null ? obj : defaultValue`
-- If-else assignment: `if (obj == null) { x = default; } else { x = obj; }`
-- If-else return: `if (obj == null) { return default; } else { return obj; }`
+**What it detects**: `obj != null ? obj : defaultValue`
 
-**Why**: Less expressive than utility method (though functionally correct)
+**Why**: Less expressive than utility method
 
 **Warning**:
 ```java
-// Ternary
 String value = config != null ? config : "default";
-
-// If-else assignment
-String result;
-if (user == null) {
-    result = "Guest";
-} else {
-    result = user;
-}
-
-// If-else return
-if (config != null) {
-    return config;
-} else {
-    return DEFAULT_CONFIG;
-}
 ```
 
 **Better**:
 ```java
 import org.apache.commons.lang3.ObjectUtils;
 
-// All three cases become:
 String value = ObjectUtils.defaultIfNull(config, "default");
-String result = ObjectUtils.defaultIfNull(user, "Guest");
-return ObjectUtils.defaultIfNull(config, DEFAULT_CONFIG);
 ```
 
 **Fix**: `ObjectUtils.defaultIfNull(obj, defaultValue)`
 
 ---
 
-#### 8. Potential Null Dereference in Log Statement
+#### 6. Boolean Auto-Unboxing Risk
 
-**What it detects**: 
-- Method calls in log arguments: `client.getName()`
-- Field access in log arguments: `client.name`
-- Does NOT flag: Simple object references like `client`
+**What it detects**: `boolean val = booleanWrapper`
 
-**Why**: May throw NPE if object is null
+**Why**: Auto-unboxing throws NPE if wrapper is null
+
+**Warning**:
+```java
+Boolean isActive = getStatus();
+boolean active = isActive;  // NPE if isActive is null!
+```
+
+**Better**:
+```java
+import org.apache.commons.lang3.BooleanUtils;
+
+Boolean isActive = getStatus();
+boolean active = BooleanUtils.isTrue(isActive);  // Safe, defaults to false
+```
+
+**Fix**: `BooleanUtils.isTrue(boolObj)` or `Boolean.TRUE.equals(boolObj)`
+
+---
+
+#### 7. Potential Null Dereference in Log Statement
+
+**What it detects**: Method calls on objects in log statements
+
+**Why**: May throw NPE in logging code
 
 **Warning**:
 ```java
 log.info("Client: {}", client.getName());  // NPE if client is null
-log.info("Name: {}", user.name);  // NPE if user is null
-log.info("Item: {}", list.get(0));  // NPE if list is null
 ```
 
 **Better**:
 ```java
-// Option 1: Ternary null check
 log.info("Client: {}", client != null ? client.getName() : null);
-
-// Option 2: Null-safe utility
-log.info("Client: {}", Objects.toString(client));
-
-// Already safe (not flagged):
-log.info("Client: {}", client);  // Just toString(), safe
-log.info("Value: {}", String.valueOf(obj));  // Null-safe method
 ```
 
 **Fix**: `log.info("...", obj != null ? obj.method() : null)`
-
-**Note**: Comprehensive whitelist of null-safe methods (String.valueOf, Objects.toString, StringUtils, CollectionUtils, etc.)
-
----
-
-#### 9. DTO Property Access Without Initialization Check
-
-**What it detects**: Accessing DTO getters without checking `isInitialized("PropertyName")` first
-
-**Why**: Uninitialized DTO properties may cause issues (Hibernate lazy loading, etc.)
-
-**Warning**:
-```java
-if (dto.getDay() != null && dto.getDay().equals(schedulingDate)) {
-    // Missing initialization check!
-}
-```
-
-**Better**:
-```java
-if (dto.isInitialized("Day") && 
-    dto.getDay() != null && 
-    dto.getDay().equals(schedulingDate)) {
-    // Proper check
-}
-```
-
-**Fix**: `dto.isInitialized("PropertyName") && dto.getPropertyName() != null`
-
-**Note**: Only applies to DTOs with `isInitialized(String)` method. Regular POJOs are not flagged.
-
----
-
-#### 10. Null Value in Map
-
-**What it detects**: Null literals passed to `Map.put()` methods
-
-**Why**: Creates ambiguity - `map.get(key)` returns null for both "key absent" and "key has null value"
-
-**Warning**:
-```java
-map.put("key", null);
-hashMap.put("id", null);
-```
-
-**Better**:
-```java
-// If removing an entry:
-map.remove("key");
-
-// If value might be null, add guard:
-if (value != null) {
-    map.put("key", value);
-}
-
-// If null is intentional (rare):
-// Document why null value is needed
-map.put("disabledFeature", null);  // Comment: null means disabled
-```
-
-**Fix**: `if (value != null) { map.put(key, value); }` or `map.remove(key)`
-
-**Note**: This is WARNING (not ERROR) because Maps support null values and some use cases are legitimate (sparse data, disable flags).
 
 ---
 
@@ -529,17 +391,13 @@ map.put("disabledFeature", null);  // Comment: null means disabled
 
 | # | Violation | Severity | Fix Complexity | Frequency |
 |---|-----------|----------|----------------|-----------|
-| 1 | String.equals() without null safety | ⚠ ERROR | Easy | Very Common |
-| 2 | Manual string null/empty check | ⚠ ERROR | Easy | Common |
-| 3-4 | Collection checks (combined) | ⚠ ERROR | Easy | Common |
-| 5 | Null default pattern (ternary/if-else) | ⚡ WARNING | Easy | Occasional |
-| 6 | Boolean auto-unboxing | ⚠ ERROR | Easy | Rare |
-| 7 | Null value in context/attributes | ⚠ ERROR | Easy | Rare |
-| 8 | Log null dereference | ⚡ WARNING | Medium | Occasional |
-| 9 | DTO initialization check | ⚡ WARNING | Easy | Rare |
-| 10 | Null value in map | ⚡ WARNING | Easy | Occasional |
-
-**Totals:** 10 rules (7 ERRORS, 4 WARNINGS) | All automatically detected
+| 1 | String.equals() | ⚠ ERROR | Easy | Very Common |
+| 2 | Manual string null/empty | ⚠ ERROR | Easy | Common |
+| 3 | Manual collection null | ⚠ ERROR | Easy | Common |
+| 4 | Collection.size() | ⚠ ERROR | Easy | Common |
+| 5 | Ternary null default | ⚡ WARNING | Easy | Occasional |
+| 6 | Boolean unboxing | ⚡ WARNING | Easy | Rare |
+| 7 | Log null dereference | ⚡ WARNING | Medium | Occasional |
 
 ---
 
@@ -570,30 +428,26 @@ private static final Set<String> PROTECTED_BRANCHES = new HashSet<>(Arrays.asLis
 
 ```
 src/main/java/com/codinglegion/
-├── actions/
-│   └── RunAnalysisAction.java               # Main action handler
+├── actions/RunAnalysisAction.java           # Main action handler
 ├── analyzer/
-│   ├── CodingStandardsAnalyzer.java         # Orchestrates all detectors
+│   ├── NullCheckAnalyzer.java               # Orchestrates all detectors
 │   ├── ViolationDetector.java               # Base detector interface
 │   └── detectors/
 │       ├── BaseDetector.java                # Shared utility methods
-│       ├── StringEqualsDetector.java        # Rule 1: String.equals()
-│       ├── StringEmptyCheckDetector.java    # Rule 2: String empty checks
-│       ├── CollectionCheckDetector.java     # Rules 3-4: Collection checks (combined)
-│       ├── TernaryNullCheckDetector.java    # Rule 5: Null defaults (ternary/if-else)
-│       ├── BooleanUnboxingDetector.java     # Rule 6: Boolean unboxing
-│       ├── LogNullDereferenceDetector.java  # Rule 8: Log null dereference
-│       ├── DtoInitializationCheckDetector.java  # Rule 9: DTO initialization
-│       └── NullValueInContextDetector.java  # Rules 7 & 10: Null in context/map
+│       ├── StringEqualsDetector.java        # Detects string.equals()
+│       ├── StringEmptyCheckDetector.java    # Detects manual null checks
+│       ├── CollectionNullCheckDetector.java # Detects collection null checks
+│       ├── CollectionSizeDetector.java      # Detects size() comparisons
+│       ├── TernaryNullCheckDetector.java    # Detects ternary patterns
+│       ├── BooleanUnboxingDetector.java     # Detects unboxing risks
+│       └── LogNullDereferenceDetector.java  # Detects log dereferences
 ├── model/
 │   ├── Violation.java                       # Violation data model
-│   ├── ViolationType.java                   # All 10 violation types
+│   ├── ViolationType.java                   # All violation types
 │   └── ViolationSeverity.java               # ERROR or WARNING
-├── startup/
-│   └── OpenReadmeOnStartup.java             # Auto-open README on project load
 ├── ui/
 │   ├── CodingLegionToolWindowFactory.java   # Tool window factory
-│   └── ViolationTreePanel.java              # Main UI panel with violations display
+│   └── ViolationTreePanel.java              # Main UI panel with HTML rendering
 └── utils/
     └── GitBranchChecker.java                # Git branch utilities
 ```
@@ -666,7 +520,7 @@ That's it! Your new rule is now active.
 ./gradlew buildPlugin
 ```
 
-Output: `build/distributions/coding-legion-<version>.zip`
+Output: `build/distributions/coding-legion-1.0.0.zip`
 
 ### Run in Development
 
@@ -708,7 +562,7 @@ Output: `build/distributions/coding-legion-<version>.zip`
    ```bash
    ./gradlew clean buildPlugin
    ```
-3. Install from `build/distributions/coding-legion-<version>.zip`
+3. Install from `build/distributions/coding-legion-1.0.0.zip`
 
 ---
 
@@ -775,9 +629,9 @@ set JAVA_HOME=C:\Path\To\jdk-11
 ### Planned Features
 
 #### Phase 1: Additional Null Check Rules
-- [x] DTO initialization checks (isInitialized() pattern) - ✅ **Implemented in v1.6.0**
-- [x] Context object null value detection - ✅ **Implemented in v1.6.0**
-- [ ] Method parameter null validation (@NonNull, @Nullable annotations)
+- [ ] DTO initialization checks (isInitialized() pattern)
+- [ ] Context object null value detection
+- [ ] Method parameter null validation
 - [ ] Quick fixes (one-click apply suggestions)
 
 #### Phase 2: Other Coding Standards
@@ -807,105 +661,6 @@ set JAVA_HOME=C:\Path\To\jdk-11
 ---
 
 ## 🎯 Best Practices
-
-### ⚠️ Important Coding Principles (MANUAL REVIEW REQUIRED)
-
-**IMPORTANT**: The principles in this section **CANNOT be automatically detected** by the plugin. They require manual code review, testing, and developer judgment.
-
-The plugin automatically detects 9 types of violations (see [Violations Reference](#-violations-reference) above). However, some critical coding principles are too context-dependent or complex for automated detection. You must review these manually.
-
----
-
-**Quick Reference: Automated vs Manual**
-
-| Category | Automated Detection | Manual Review Required |
-|----------|-------------------|----------------------|
-| **Null Safety Patterns** | ✅ String.equals()<br/>✅ String empty checks<br/>✅ Collection checks<br/>✅ Ternary null defaults<br/>✅ DTO initialization<br/>✅ Null in context/maps | ❌ Error handling intent<br/>❌ Downstream logic effects<br/>❌ When to fail-fast vs defensive |
-| **Boolean Handling** | ✅ Auto-unboxing detection | ❌ Test coverage (true/false/null)<br/>❌ Appropriate null defaults |
-| **Logging** | ✅ Null dereference in logs | |
-
----
-
-#### 🔴 Error Handling & Null Checks (NOT Auto-Detected)
-
-**Why this isn't automated:** Requires understanding business logic and intent - static analysis cannot determine if error handling is correct or a bug.
-
-When implementing null checks or error-handling guards, ensure their downstream effects are well understood. Neglecting this can unintentionally alter logic flow and cause unexpected behavior.
-
-**Key Considerations:**
-- **Intent**: Should this fail-fast (throw error) or handle gracefully (return/log)?
-- **Downstream Impact**: Does this change existing behavior or fix a bug?
-- **Logging**: Add appropriate logging when handling errors silently
-- **Documentation**: Document why the null check/error handling exists
-
-**Examples:**
-
-```java
-// ❌ BAD: Silent failure that hides bugs
-public void chargeCustomer(Customer customer) {
-    if (customer == null) return;  // Hides bug - should never be null!
-    processPayment(customer.getAccount());
-}
-
-// ✅ GOOD: Explicit handling with logging
-public void logActivity(User user) {
-    if (user == null) {
-        logger.warn("logActivity called with null user");
-        return;  // Optional logging, so graceful handling is OK
-    }
-    logger.info("User: " + user.getName());
-}
-
-// ✅ GOOD: Fail-fast for critical operations
-public void chargeCustomer(Customer customer) {
-    Objects.requireNonNull(customer, "Customer cannot be null");
-    processPayment(customer.getAccount());
-}
-```
-
----
-
-#### 🔴 Boolean Handling & Testing (NOT Auto-Detected)
-
-**Why this isn't automated:** Test coverage and default value appropriateness require business context that static analysis cannot determine.
-
-**Rule**: Always treat boolean values strictly as `true` or `false`. If the value is `null`, handle it by defaulting to either `true` or `false` as appropriate.
-
-**Testing Requirements:**
-- Add test cases to handle null scenarios
-- Any Boolean attribute must have test cases covering:
-  - `true` scenario
-  - `false` scenario
-  - `null` scenario
-
-**Examples:**
-
-```java
-// ✅ GOOD: Explicit null handling with default
-public boolean isFeatureEnabled(Boolean featureFlag) {
-    return BooleanUtils.isTrue(featureFlag);  // null → false
-}
-
-public boolean isOptOut(Boolean optOutFlag) {
-    return BooleanUtils.isNotFalse(optOutFlag);  // null → true (opt-out by default)
-}
-
-// ✅ GOOD: Test coverage for all scenarios
-@Test
-public void testFeatureFlag() {
-    assertTrue(isFeatureEnabled(Boolean.TRUE));    // true case
-    assertFalse(isFeatureEnabled(Boolean.FALSE));   // false case
-    assertFalse(isFeatureEnabled(null));            // null case → default to false
-}
-```
-
-**Why This Matters:**
-- Prevents unexpected `NullPointerException` from auto-unboxing
-- Makes default behavior explicit and testable
-- Ensures consistent behavior across the application
-- Documents intent clearly (null means true vs null means false)
-
----
 
 ### When to Run
 
