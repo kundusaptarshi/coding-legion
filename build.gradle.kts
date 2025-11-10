@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij") version "1.17.2"
 }
 
-// Load version from version.properties
+// Load version from version.properties (root)
 val versionPropsFile = file("version.properties")
 val versionProps = Properties()
 versionProps.load(FileInputStream(versionPropsFile))
@@ -39,6 +39,14 @@ intellij {
 }
 
 tasks {
+    // Auto-copy version.properties and README.md from root to resources during build
+    processResources {
+        from(projectDir) {
+            include("version.properties", "README.md")
+            into(".")
+        }
+    }
+    
     patchPluginXml {
         sinceBuild.set("201")
         untilBuild.set("999.*")

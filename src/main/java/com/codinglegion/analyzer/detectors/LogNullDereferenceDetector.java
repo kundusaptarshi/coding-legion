@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType;
 import com.codinglegion.analyzer.ViolationDetector;
 import com.codinglegion.model.Violation;
 import com.codinglegion.model.ViolationType;
+import com.codinglegion.settings.CodingLegionSettings;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -138,12 +139,26 @@ public class LogNullDereferenceDetector extends BaseDetector implements Violatio
             return false;
         }
         
-        // Get the class name if qualifier exists
+        // Get the class name and variable name if qualifier exists
         String qualifierClass = null;
+        String qualifierName = null;
         if (qualifier != null) {
+            qualifierName = qualifier.getText();
             PsiType type = qualifier.getType();
             if (type != null) {
                 qualifierClass = type.getCanonicalText();
+            }
+        }
+        
+        // Skip common utility bean patterns (autowired beans) based on user settings
+        if (qualifierName != null) {
+            CodingLegionSettings settings = CodingLegionSettings.getInstance();
+            String lowerName = qualifierName.toLowerCase();
+            
+            for (String pattern : settings.utilityBeanPatterns) {
+                if (lowerName.endsWith(pattern.toLowerCase())) {
+                    return true;  // Assume autowired beans are non-null
+                }
             }
         }
         

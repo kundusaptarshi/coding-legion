@@ -7,9 +7,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.codinglegion.analyzer.detectors.*;
 import com.codinglegion.model.Violation;
+import com.codinglegion.settings.CodingLegionSettings;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -28,19 +28,38 @@ public class CodingStandardsAnalyzer {
     
     /**
      * Initialize all violation detectors
-     * Adding new detectors is as simple as adding them to this list!
+     * Only includes enabled detectors based on user settings
      */
     private List<ViolationDetector> initializeDetectors() {
-        return Arrays.asList(
-            new StringEqualsDetector(),
-            new StringEmptyCheckDetector(),
-            new CollectionCheckDetector(),  // Combined collection detector (old rules 3 & 4)
-            new TernaryNullCheckDetector(),
-            new BooleanUnboxingDetector(),
-            new LogNullDereferenceDetector(),
-            new DtoInitializationCheckDetector(),  // DTO property initialization check
-            new NullValueInContextDetector()  // Null values in context/map setters
-        );
+        CodingLegionSettings settings = CodingLegionSettings.getInstance();
+        List<ViolationDetector> detectors = new ArrayList<>();
+        
+        if (settings.enableStringEqualsCheck) {
+            detectors.add(new StringEqualsDetector());
+        }
+        if (settings.enableStringEmptyCheck) {
+            detectors.add(new StringEmptyCheckDetector());
+        }
+        if (settings.enableCollectionCheck) {
+            detectors.add(new CollectionCheckDetector());
+        }
+        if (settings.enableTernaryNullDefaultCheck) {
+            detectors.add(new TernaryNullCheckDetector());
+        }
+        if (settings.enableBooleanUnboxingCheck) {
+            detectors.add(new BooleanUnboxingDetector());
+        }
+        if (settings.enableLogNullDereferenceCheck) {
+            detectors.add(new LogNullDereferenceDetector());
+        }
+        if (settings.enableDtoInitializationCheck) {
+            detectors.add(new DtoInitializationCheckDetector());
+        }
+        if (settings.enableNullInContextCheck || settings.enableNullInMapCheck) {
+            detectors.add(new NullValueInContextDetector());
+        }
+        
+        return detectors;
     }
     
     /**

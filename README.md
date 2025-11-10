@@ -18,11 +18,14 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 - [Usage Guide](#-usage-guide)
 - [Violations Reference](#-violations-reference) - 10 Automated Rules
 - [Best Practices](#-best-practices) - Manual Review Guidelines
-- [Configuration](#-configuration)
+- [Configuration](#-configuration) - Settings Panel & Team Sharing
+- [Version Management](#-version-management) - Auto-Increment & Workflows
 - [Development](#-development)
+- [Building the Plugin](#-building-the-plugin)
 - [Team Distribution](#-team-distribution)
 - [Troubleshooting](#-troubleshooting)
 - [Future Improvements](#-future-improvements)
+- [Contributing](#-contributing)
 - [Copyright](#-copyright)
 
 ---
@@ -37,26 +40,31 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 - **Incremental Scanning**: Efficient detection focused on your changes
 
 ### Comprehensive Detection
-- **Errors**: Detects definite coding standard violations that must be fixed (7 rules)
-- **Warnings**: Flags potential coding standard concerns that should be reviewed (4 rules)
 - **10 Automated Rules**: String handling, collections, objects, booleans, logging, DTOs, and context/map management
-- **Extensible Architecture**: Easily add new rules for other coding standards
+- **Errors**: 7 rules for definite coding standard violations that must be fixed
+- **Warnings**: 4 rules for potential concerns that should be reviewed
+- **Customizable Rules**: Enable/disable any rule via Settings panel
 - **Smart Severity Levels**: Context-aware ERROR vs WARNING classification
+- **Reduced False Positives**: Boolean constants, utility beans, and string literals handled intelligently
 
 ### Developer-Friendly UI
 - **Clickable Violations**: Click blue links to jump directly to exact code location (line:column)
+- **Compact Descriptions**: Short messages in UI, full details in README via ℹ️ icon
 - **Tabbed Results**: Separate tabs for Errors and Warnings
+- **Fixed Footer**: Best Practices link always visible in Warnings tab (no scrolling)
 - **Quick Re-run**: 🔄 reload button appears after first analysis for instant re-analysis
 - **Smart Tab Behavior**: Re-run preserves current tab, initial run shows Errors tab
+- **Smart Navigation**: Click ℹ️ or footer links to open README at specific sections
 - **Theme-Adaptive**: Beautiful UI that works in both light and dark IntelliJ themes
-- **Selectable Text**: Copy violation details for documentation (no cursor interference)
-- **Bundled Documentation**: Access full docs within IntelliJ
+- **Auto-Scroll to Top**: Violations always start at the top of the list
 
-### Team Collaboration
+### Team Collaboration & Configuration
+- **Customizable Settings Panel**: Configure rules, branches, and whitelists via Settings → Tools → Coding Legion
+- **Import/Export Settings**: Share team configuration via .properties files
+- **Auto-Reset on Upgrade**: Clean slate when upgrading to new plugin versions
 - **No External Dependencies**: Self-contained plugin with no runtime dependencies
 - **Easy Distribution**: Share as a single JAR file across your team
 - **Version Compatible**: Works with IntelliJ IDEA 2020.1+ and all future versions
-- **Professional Display**: Custom logo and branding
 
 ---
 
@@ -92,8 +100,12 @@ Coding Legion is a powerful IntelliJ IDEA plugin that helps development teams ma
 
 1. **Get the Plugin ZIP**:
    ```bash
-   # Build from source:
+   # Recommended: Smart build with auto-version increment
+   ./build-with-version-bump.sh
+   
+   # Or manual build (no version change)
    ./gradlew buildPlugin
+   
    # Output: build/distributions/coding-legion-<version>.zip
    ```
 
@@ -545,21 +557,182 @@ map.put("disabledFeature", null);  // Comment: null means disabled
 
 ## ⚙️ Configuration
 
-### Protected Branches
+### Settings Panel
 
-The plugin automatically blocks analysis on these branches:
-- `master`
-- `main`
-- `develop`
-- `development`
+Access comprehensive plugin configuration via:
+```
+File → Settings → Tools → Coding Legion
+```
 
-To customize, edit `src/main/java/com/codinglegion/utils/GitBranchChecker.java`:
+**Configuration Options:**
 
-```java
-private static final Set<String> PROTECTED_BRANCHES = new HashSet<>(Arrays.asList(
-        "master", "main", "develop", "development"
-        // Add your custom protected branches here
-));
+#### 1. Analysis Scope
+- ☐ **Analyze only changed/added lines** (not entire files)
+  - Faster analysis but may miss context-dependent violations
+  - Default: OFF (analyzes entire changed files)
+
+#### 2. Protected Branches *(Read-Only)*
+View which branches block analysis:
+```
+master
+main
+develop
+development
+```
+**Note:** This field is read-only in the UI. To modify protected branches, export settings, edit the `.properties` file, and import it back.
+
+#### 3. Log Null Dereference - Utility Bean Whitelist
+Autowired beans ending with these patterns won't trigger log warnings:
+```
+util
+utils
+helper
+service
+manager
+converter
+mapper
+```
+Add your custom patterns (e.g., `jsonUtil`, `dataHelper`) to avoid false positives.
+
+#### 4. Enable/Disable Rules
+Toggle any of the 10 rules ON or OFF:
+- ☑ Rule 1: String.equals() (ERROR)
+- ☑ Rule 2: String empty checks (ERROR)
+- ☑ Rules 3-4: Collection checks (ERROR)
+- ☑ Rule 5: Null defaults (WARNING)
+- ☑ Rule 6: Boolean unboxing (ERROR)
+- ☑ Rule 7: Null in context (ERROR)
+- ☑ Rule 8: Log null dereference (WARNING)
+- ☑ Rule 9: DTO initialization (WARNING)
+- ☑ Rule 10: Null in map (WARNING)
+
+#### 5. Import/Export Configuration
+- **Export:** Save current settings to `.properties` file
+  - Filename: `coding-legion-settings-v1.7.0.properties`
+  - Auto-increments if file exists: `_1`, `_2`, etc.
+- **Import:** Load settings from any `.properties` file
+- **Share:** Perfect for team-wide configuration consistency
+
+#### 6. Reset to Defaults
+Clears all settings (checkboxes, branches, patterns) to empty state.
+
+---
+
+### Team Configuration Workflow
+
+**Setup Lead:**
+1. Configure rules and settings
+2. Export settings file
+3. Share with team
+
+**Team Members:**
+1. Install plugin
+2. Import shared settings file
+3. All team members have identical configuration!
+
+---
+
+## 🔄 Version Management
+
+### Automatic Version Increment
+
+The plugin includes scripts to automatically increment the patch version when code changes are detected.
+
+#### Quick Start
+
+```bash
+./build-with-version-bump.sh
+```
+
+This will:
+1. Check if code changed in `src/` since last build
+2. If changed → Increment patch version (1.7.0 → 1.7.1)
+3. If unchanged → Keep version same
+4. Build the plugin
+5. Show the result
+
+---
+
+### Version Scheme
+
+```
+MAJOR.MINOR.PATCH
+  │     │     └─ Auto-incremented on code changes
+  │     └─────── Manually update for new features
+  └───────────── Manually update for breaking changes
+```
+
+**Examples:**
+- `1.7.0` → `1.7.1` (patch: bug fixes, improvements)
+- `1.7.1` → `1.8.0` (minor: new features)
+- `1.8.0` → `2.0.0` (major: breaking changes)
+
+---
+
+### Workflows
+
+#### Workflow 1: Auto-Increment (Code Changes)
+```bash
+# Make code changes
+vi src/main/java/...
+
+# Build with auto-increment
+./build-with-version-bump.sh
+
+# Output: 1.7.0 → 1.7.1
+# Plugin: coding-legion-1.7.1.zip
+```
+
+#### Workflow 2: Manual Version (New Features)
+```bash
+# Edit version.properties manually for major/minor bumps
+echo "version=1.8.0" > version.properties
+
+# Build normally
+./gradlew buildPlugin
+```
+
+#### Workflow 3: Check Without Building
+```bash
+# Just check if version would increment
+./increment-version.sh
+
+# Output: Either increments or says "No changes"
+```
+
+---
+
+### Build Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `increment-version.sh` | Checks for code changes, increments PATCH version if changes found |
+| `build-with-version-bump.sh` | Runs increment script, builds plugin, shows result |
+
+---
+
+### Settings Auto-Reset on Upgrade
+
+When users upgrade to a new version:
+1. Plugin detects version change (via `FirstRunDetector`)
+2. **Auto-resets all settings to empty**
+3. User must reconfigure or import settings
+
+This ensures clean slate on every version upgrade.
+
+---
+
+### Commit Workflow
+
+After successful build with version increment:
+```bash
+# Commit the version change
+git add version.properties
+git commit -m "Bump version to 1.7.1"
+
+# Tag the release (optional)
+git tag v1.7.1
+git push && git push --tags
 ```
 
 ---
@@ -660,24 +833,47 @@ That's it! Your new rule is now active.
 
 ## 🏗️ Building the Plugin
 
-### Build Plugin ZIP
+### Recommended: Smart Build (Auto-Version Increment)
+
+```bash
+./build-with-version-bump.sh
+```
+
+**What it does:**
+- Checks if code changed in `src/` since last build
+- If changed → Auto-increments patch version (1.7.0 → 1.7.1)
+- If unchanged → Keeps version same
+- Builds the plugin
+- Output: `build/distributions/coding-legion-<version>.zip`
+
+**Example:**
+```
+🔍 Checking for code changes...
+✅ Version incremented: 1.7.0 → 1.7.1
+📝 New changes detected in src/ directory
+🏗️ Building plugin...
+✅ Build successful!
+📦 Plugin: build/distributions/coding-legion-1.7.1.zip
+```
+
+### Manual Build (No Version Change)
 
 ```bash
 ./gradlew buildPlugin
 ```
 
-Output: `build/distributions/coding-legion-<version>.zip`
-
-### Run in Development
-
-```bash
-./gradlew runIde  # Launches test IntelliJ with plugin
-```
+Use when you don't want to increment version (testing, debugging, etc.)
 
 ### Clean Build
 
 ```bash
 ./gradlew clean build
+```
+
+### Run in Development
+
+```bash
+./gradlew runIde  # Launches test IntelliJ with plugin
 ```
 
 ---
@@ -688,7 +884,8 @@ Output: `build/distributions/coding-legion-<version>.zip`
 
 1. **Build once**:
    ```bash
-   ./gradlew buildPlugin
+   ./build-with-version-bump.sh  # Recommended: auto-version increment
+   # Or: ./gradlew buildPlugin
    ```
 
 2. **Share ZIP** from `build/distributions/` via:
@@ -706,7 +903,8 @@ Output: `build/distributions/coding-legion-<version>.zip`
 1. Share the repository
 2. Team members build locally:
    ```bash
-   ./gradlew clean buildPlugin
+   ./build-with-version-bump.sh  # Recommended
+   # Or: ./gradlew clean buildPlugin
    ```
 3. Install from `build/distributions/coding-legion-<version>.zip`
 
@@ -947,8 +1145,8 @@ public void testFeatureFlag() {
 2. Create feature branch: `git checkout -b feature/amazing-feature`
 3. Make changes
 4. Test: `./gradlew test`
-5. Build: `./gradlew buildPlugin`
-6. Commit: `git commit -m 'Add amazing feature'`
+5. Build: `./build-with-version-bump.sh` (auto-increments version)
+6. Commit: `git add version.properties` and `git commit -m 'Add amazing feature'`
 7. Push and create Pull Request
 
 ### Code Style

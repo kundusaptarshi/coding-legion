@@ -93,6 +93,11 @@ public class BooleanUnboxingDetector extends BaseDetector implements ViolationDe
     }
     
     private boolean isBooleanWrapperType(PsiExpression expr) {
+        // Skip Boolean constants (Boolean.TRUE, Boolean.FALSE) - they're safe
+        if (isBooleanConstant(expr)) {
+            return false;
+        }
+        
         PsiType type = expr.getType();
         if (type == null) {
             return false;
@@ -100,6 +105,22 @@ public class BooleanUnboxingDetector extends BaseDetector implements ViolationDe
         
         String typeName = type.getCanonicalText();
         return "java.lang.Boolean".equals(typeName) || "Boolean".equals(typeName);
+    }
+    
+    /**
+     * Check if expression is a Boolean constant (Boolean.TRUE or Boolean.FALSE)
+     */
+    private boolean isBooleanConstant(PsiExpression expr) {
+        if (!(expr instanceof PsiReferenceExpression)) {
+            return false;
+        }
+        
+        PsiReferenceExpression ref = (PsiReferenceExpression) expr;
+        String text = ref.getText();
+        
+        // Check for Boolean.TRUE or Boolean.FALSE
+        return "Boolean.TRUE".equals(text) || "Boolean.FALSE".equals(text) ||
+               "java.lang.Boolean.TRUE".equals(text) || "java.lang.Boolean.FALSE".equals(text);
     }
     
     private void checkReturnStatement(PsiReturnStatement returnStmt, List<Violation> violations) {

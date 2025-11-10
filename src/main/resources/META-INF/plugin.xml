@@ -86,8 +86,19 @@
             icon="/icons/logo_16.png"
             factoryClass="com.codinglegion.ui.CodingLegionToolWindowFactory"/>
         
-        <!-- Startup Activity: Open README on project open -->
+        <!-- Startup Activities -->
+        <postStartupActivity implementation="com.codinglegion.startup.FirstRunDetector"/>
         <postStartupActivity implementation="com.codinglegion.startup.OpenReadmeOnStartup"/>
+        
+        <!-- Settings under Tools -->
+        <applicationConfigurable 
+            parentId="tools"
+            instance="com.codinglegion.settings.CodingLegionConfigurable"
+            id="com.codinglegion.settings"
+            displayName="Coding Legion"/>
+        
+        <applicationService 
+            serviceImplementation="com.codinglegion.settings.CodingLegionSettings"/>
     </extensions>
     
     <actions>

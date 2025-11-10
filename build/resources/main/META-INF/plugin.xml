@@ -1,6 +1,80 @@
 <idea-plugin>
-  <version>1.6.0</version>
-  <change-notes><![CDATA[<h2>Version 1.6.0 - Major Update</h2>
+  <version>1.9.0</version>
+  <change-notes><![CDATA[<h2>Version 1.7.0 - Settings & Enhanced Detection</h2>
+
+<h3>🆕 Major New Features</h3>
+<ul>
+    <li><b>Customizable Settings Panel</b> - Configure plugin behavior via Settings → Tools → Coding Legion
+        <ul>
+            <li>Enable/disable individual rules</li>
+            <li>Configure protected branches</li>
+            <li>Customize utility bean whitelist for log checks</li>
+            <li>Option to analyze only changed lines (not entire files)</li>
+        </ul>
+    </li>
+    <li><b>Import/Export Settings</b> - Share team configurations via .properties files
+        <ul>
+            <li>Export settings with auto-incrementing filenames</li>
+            <li>Import any .properties file</li>
+            <li>Perfect for team standardization</li>
+        </ul>
+    </li>
+    <li><b>Auto-Reset on Upgrade</b> - Settings automatically reset when plugin version changes (ensures clean configuration)</li>
+    <li><b>Auto-Version Management</b> - Smart build script auto-increments version when code changes detected</li>
+</ul>
+
+<h3>✨ Detection Improvements</h3>
+<ul>
+    <li><b>Rule 6 (Boolean Unboxing)</b> - Now ignores Boolean.TRUE and Boolean.FALSE constants (no false positives)</li>
+    <li><b>Rule 8 (Log Null Dereference)</b> - Smart whitelist for autowired utility beans
+        <ul>
+            <li>Beans ending with util, utils, helper, service, manager, etc. are considered safe</li>
+            <li>Customizable via settings</li>
+            <li>No more false positives for jsonUtil.toJSON(), stringHelper.convert(), etc.</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>🎨 UI Enhancements</h3>
+<ul>
+    <li><b>Fixed Footer in Warnings Tab</b> - Best Practices link always visible at bottom (no scrolling needed)</li>
+    <li><b>Compact Descriptions</b> - Short violation messages in UI, full details in README via ℹ️ icon</li>
+    <li><b>Smart Navigation</b> - Dynamic pattern matching for README navigation (resilient to header changes)</li>
+    <li><b>Re-Navigation Support</b> - Clicking same link multiple times now works correctly</li>
+    <li><b>Auto-Scroll to Top</b> - Violations always display from top of list</li>
+</ul>
+
+<h3>🔧 Architecture & Maintenance</h3>
+<ul>
+    <li><b>Single-Source Configuration</b>
+        <ul>
+            <li>One version.properties file (root) - auto-copied to resources during build</li>
+            <li>One README.md file (root) - auto-copied to resources during build</li>
+            <li>One CHANGELOG.html file - used by build script</li>
+        </ul>
+    </li>
+    <li><b>Build Scripts</b>
+        <ul>
+            <li>increment-version.sh - Auto-increments patch version if code changed</li>
+            <li>build-with-version-bump.sh - Smart build with automatic versioning</li>
+        </ul>
+    </li>
+    <li><b>Documentation</b> - Added VERSION_MANAGEMENT.md for version and settings workflow</li>
+</ul>
+
+<h3>📊 Summary</h3>
+<ul>
+    <li><b>Total Rules:</b> 10 automated detectors</li>
+    <li><b>Errors:</b> 7 rules</li>
+    <li><b>Warnings:</b> 4 rules (with customizable severity via settings)</li>
+    <li><b>False Positives:</b> Further reduced with Boolean constants and utility bean whitelisting</li>
+    <li><b>Configurability:</b> Full control via Settings panel</li>
+    <li><b>Team Sharing:</b> Import/Export settings for consistency</li>
+</ul>
+
+<hr>
+
+<h2>Version 1.6.0 - Major Update</h2>
 
 <h3>🆕 New Rules (3 Added)</h3>
 <ul>
@@ -157,8 +231,12 @@
   <extensions defaultExtensionNs="com.intellij">
     <!-- Tool Window -->
     <toolWindow id="Coding Legion" anchor="bottom" icon="/icons/logo_16.png" factoryClass="com.codinglegion.ui.CodingLegionToolWindowFactory" />
-    <!-- Startup Activity: Open README on project open -->
+    <!-- Startup Activities -->
+    <postStartupActivity implementation="com.codinglegion.startup.FirstRunDetector" />
     <postStartupActivity implementation="com.codinglegion.startup.OpenReadmeOnStartup" />
+    <!-- Settings under Tools -->
+    <applicationConfigurable parentId="tools" instance="com.codinglegion.settings.CodingLegionConfigurable" id="com.codinglegion.settings" displayName="Coding Legion" />
+    <applicationService serviceImplementation="com.codinglegion.settings.CodingLegionSettings" />
   </extensions>
   <actions>
     <action id="com.codinglegion.RunLegionAnalysis" class="com.codinglegion.actions.RunAnalysisAction" text="Run Legion Analysis" description="Analyze changed files for null check violations (Feature branches only)" icon="/icons/logo_16.png">
