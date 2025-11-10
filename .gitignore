@@ -1,0 +1,39 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Gradle
+.gradle/
+build/
+bin/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Java
+*.class
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Exception: Keep gradle wrapper jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Plugin build output
+build/
+target/
+
+# Version increment tracking
+.last-build-hash
+.last-build-version
